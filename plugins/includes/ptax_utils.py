@@ -7,17 +7,17 @@ def format_date_for_api(d):
     '''Convert date to MM-DD-YYYY format for Olinda API'''
     return d.strftime('%m-%d-%Y')
 
-
-def fetch_ptax_data(end_date=None):
+def fetch_ptax_data(start_date=None, end_date=None):
     '''
-    Fetches PTAX exchange rate data from the Olinda API.
-    If no end_date is provided, uses today.
-    Queries the last 16 calendar days from end_date.
+    Fetches PTAX exchange rate data from the Olinda API for a date range.
+    - If no end_date is provided, uses today.
+    - If no start_date is provided, uses 16 days before end_date.
     '''
     if end_date is None:
         end_date = date.today()
 
-    start_date = end_date - timedelta(days=16)
+    if start_date is None:
+        start_date = end_date - timedelta(days=16)
 
     formatted_start = format_date_for_api(start_date)
     formatted_end = format_date_for_api(end_date)
@@ -44,6 +44,7 @@ def fetch_ptax_data(end_date=None):
     df.set_index('date', inplace=True)
 
     return df
+
 
 
 def fill_missing_quotes(df, end_date=None, days=10):

@@ -23,7 +23,6 @@ def collect_ptax_quotes():
 
     file_path = output_path / 'ptax_last_10_days.parquet'
     df_filled.to_parquet(file_path, index=False)
-    print(f'PTAX quotes saved to {file_path}')
 
 
 with DAG(
