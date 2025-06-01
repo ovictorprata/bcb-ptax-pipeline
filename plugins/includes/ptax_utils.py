@@ -81,3 +81,4 @@ def fill_missing_quotes(df, end_date=None, days=10):
     return pd.DataFrame(filled_quotes)
 
 
+print(fetch_ptax_data())
