@@ -1,10 +1,11 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import pandas as pd
-from includes.ptax_utils import fetch_ptax_data, fill_missing_quotes
-from pathlib import Path
+import requests
 
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from includes.ptax_utils import fetch_ptax_data, fill_missing_quotes
 
 default_args = {
     'owner': 'airflow',
@@ -14,28 +15,62 @@ default_args = {
     'retry_delay': timedelta(minutes=5)
 }
 
-def collect_ptax_quotes():
-    df_raw = fetch_ptax_data()
-    df_filled = fill_missing_quotes(df_raw, days=10)
+def etl_ptax_10_days_to_db():
+    print("Iniciando ETL PTAX (últimos 10 dias).")
 
-    output_path = Path('/opt/airflow/data/ptax/')
-    output_path.mkdir(parents=True, exist_ok=True)
+    try:
+        df_raw = fetch_ptax_data()
+        print(f"PTAX bruto: {len(df_raw)} linhas.")
+    except requests.exceptions.RequestException as e:
+        print(f"Erro de rede ao buscar dados PTAX: {e}")
+        raise
+    except Exception as e:
+        print(f"Erro ao obter dados PTAX: {e}")
+        raise
 
-    file_path = output_path / 'ptax_last_10_days.parquet'
-    df_filled.to_parquet(file_path, index=False)
+    if df_raw.empty:
+        print("Nenhum dado retornado da API.")
+        return
 
+    try:
+        df_filled = fill_missing_quotes(df_raw, days=10)
+        print(f"Dados após preenchimento: {len(df_filled)} linhas.")
+    except Exception as e:
+        print(f"Erro ao preencher cotações: {e}")
+        raise
+
+    if df_filled.empty:
+        print("Nenhum dado após preenchimento.")
+        return
+
+    df_filled['date'] = pd.to_datetime(df_filled['date'])
+
+    try:
+        pg_hook = PostgresHook(postgres_conn_id="postgres_data_conn")
+        engine = pg_hook.get_sqlalchemy_engine()
+
+        df_filled.to_sql(
+            name="mesa_cambio_quotations",
+            con=engine,
+            if_exists='replace',
+            index=False
+        )
+        print("Dados salvos com sucesso.")
+    except Exception as e:
+        print(f"Erro ao salvar no banco: {e}")
+        raise
 
 with DAG(
-    dag_id='ptax_last_10_days_collector',
-    default_args=default_args,
-    schedule='0 10,15,20 * * *', 
+    dag_id='ptax_10_dias_to_db',
+    schedule='0 10,15,20 * * *',
     catchup=False,
-    tags=['ptax', 'dollar', 'quotes']
+    default_args=default_args,
+    tags=['ptax', 'cambio', 'database']
 ) as dag:
 
-    fetch_and_save = PythonOperator(
-        task_id='fetch_and_save_ptax_last_10_days',
-        python_callable=collect_ptax_quotes
+    run_etl_task = PythonOperator(
+        task_id='run_etl_ptax_10_days_to_db',
+        python_callable=etl_ptax_10_days_to_db,
     )
 
-    fetch_and_save
+    run_etl_task
