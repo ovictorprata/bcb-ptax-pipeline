@@ -61,8 +61,8 @@ def get_quotation_data(start_date: str, end_date: str) -> pd.DataFrame:
     
     return df_complete
 
-start_date = '02-01-2025'
-end_date = '02-31-2025'
+start_date = '03-01-2025'
+end_date = '03-31-2025'
 df_complete = get_quotation_data(start_date, end_date)
 
 print(df_complete.head(31))
