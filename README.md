@@ -230,4 +230,3 @@ Após isso, acesse `http://localhost:8080` com usuário/senha `admin/admin`.
 
 Pronto! Com isso, seu pipeline de cotações do dólar está rodando em produção local via Airflow e Docker Compose. Qualquer dúvida, confira os logs em `logs/dag_processor/…` ou abra uma issue.
 
-— Equipe de Engenharia 🚀
