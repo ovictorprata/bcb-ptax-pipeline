@@ -33,6 +33,11 @@ cd <NOME_DO_REPOSITORIO>
 
 - Se você quiser usar configurações personalizadas do Airflow, edite `config/airflow.cfg`.  
 - Confirme que a pasta `data/` existe e que o usuário do Airflow tem permissão de escrita nela.
+- Antes de tudo, copie o arquivo de exemplo de variáveis de ambiente `.env.example` para `.env` na raiz do projeto, ajustando valores conforme necessário. Por exemplo:
+```bash
+AIRFLOW_UID=1002
+AIRFLOW__CORE__DEFAULT_TIMEZONE=America/Sao_Paulo
+```
 
 ### 3. Build da imagem Docker
 
@@ -57,7 +62,7 @@ O Docker Compose iniciará, em modo “detached”:
 ### 5. Inicializar o banco do Airflow (somente na primeira vez)
 
 ```bash
-docker compose exec airflow-webserver airflow db init
+docker compose exec airflow-apiserver airflow db migrate
 ```
 
 ### 6. Criar usuário administrador
